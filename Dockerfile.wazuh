@@ -1,0 +1,4 @@
+FROM wazuh/wazuh-manager:4.4.4
+VOLUME /var/ossec
+EXPOSE 1514/udp 55000
+CMD ["/entrypoint.sh"]
