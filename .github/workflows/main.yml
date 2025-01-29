@@ -1,0 +1,58 @@
+name: Build, Push & Deploy
+
+on:
+  push:
+    branches:
+      - main  # Se ejecuta cuando haces push a la rama main
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Nginx image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/nginx:latest -f Dockerfile.nginx .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/nginx:latest
+
+      - name: Build and push MariaDB image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mariadb:latest -f Dockerfile.mariadb .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/mariadb:latest
+
+      - name: Build and push Wazuh image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/wazuh:latest -f Dockerfile.wazuh .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/wazuh:latest
+
+  deploy:
+    name: Deploy on Remote Server
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Remote Server
+        run: |
+          ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+          cd ${{ secrets.REMOTE_DEPLOY_PATH }}
+          docker-compose pull
+          docker-compose up -d --force-recreate
+          docker system prune -f
+          EOF
