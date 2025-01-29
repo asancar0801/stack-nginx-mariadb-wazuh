@@ -58,5 +58,5 @@ jobs:
            cd ${{ secrets.REMOTE_DEPLOY_PATH }}
            git clone https://github.com/asancar0801/stack-nginx-mariadb-wazuh.git
            cd /stack-nginx-mariadb-wazuh/deploy
-           docker-compose up -d --force-recreate
+           docker compose up -d --force-recreate
            docker system prune -f
