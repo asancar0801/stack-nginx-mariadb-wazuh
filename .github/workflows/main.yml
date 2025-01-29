@@ -48,11 +48,15 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to Remote Server
-        run: |
-          ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
-          cd ${{ secrets.REMOTE_DEPLOY_PATH }}
-          docker-compose pull
-          docker-compose up -d --force-recreate
-          docker system prune -f
-          EOF
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+         host: ${{ secrets.REMOTE_HOST }}
+         username: ${{ secrets.REMOTE_USER }}
+         password: ${{ secrets.REMOTE_PASSWORD }}
+         script: |
+           cd ${{ secrets.REMOTE_DEPLOY_PATH }}
+           git clone https://github.com/asancar0801/stack-nginx-mariadb-wazuh.git
+           cd /stack-nginx-mariadb-wazuh/deploy
+           docker-compose up -d --force-recreate
+           docker system prune -f
